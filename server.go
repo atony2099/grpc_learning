@@ -6,9 +6,16 @@ import (
 
 	pb "example/proto" // 引入编译生成的包
 
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
+)
+
+var (
+	logrusLogger *logrus.Logger
+	customFunc   grpc_logrus.CodeToLevel
 )
 
 const (
@@ -35,13 +42,29 @@ func main() {
 	if err != nil {
 		grpclog.Fatalf("Failed to listen: %v", err)
 	}
+	var opts []grpc.ServerOption
+
+	var inter grpc.UnaryServerInterceptor
+	inter = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		fmt.Println("hello")
+		if err != nil {
+			return
+		}
+		// 继续处理请求
+		return handler(ctx, req)
+	}
+
+	opts = append(opts, grpc.UnaryInterceptor(inter))
 
 	// 实例化grpc Server
-	s := grpc.NewServer()
+	s := grpc.NewServer(opts...)
 
-	// 注册HelloService
+	//
 	pb.RegisterHelloServer(s, HelloService)
 
 	grpclog.Println("Listen on " + Address)
 	s.Serve(listen)
+
+	// golang rpc;
+
 }
